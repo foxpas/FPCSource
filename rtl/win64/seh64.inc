@@ -265,6 +265,11 @@ procedure RtlUnwindEx(
   HistoryTable: PUNWIND_HISTORY_TABLE);
   external 'kernel32.dll' name 'RtlUnwindEx';
 
+procedure RtlRestoreContext(
+  ContextRecord: PContext;
+  ExceptionRecord: PExceptionRecord = nil); stdcall;
+  external 'kernel32.dll' name 'RtlRestoreContext';
+
 
 { FPC specific stuff }
 {$ifdef SYSTEM_USE_WIN_SEH}
@@ -412,6 +417,10 @@ var
   ctx: TContext;
 begin
   RtlUnwindEx(frame,target,nil,nil,@ctx,nil);
+{$if defined(CPUAARCH64)}
+  { On Windows ARM64 RtlUnwindEx may return instead of transferring control }
+  RtlRestoreContext(@ctx,nil);
+{$endif CPUAARCH64}
 end;
 {$pop}
 

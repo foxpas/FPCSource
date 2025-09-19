@@ -100,6 +100,7 @@ interface
         procedure g_proc_exit(list: TAsmList; parasize: longint; nostackframe: boolean);override;
         procedure g_maybe_got_init(list: TAsmList); override;
         procedure g_restore_registers(list: TAsmList);override;
+        procedure g_local_unwind(list: TAsmList; l: TAsmLabel);override;
         procedure g_save_registers(list: TAsmList);override;
         procedure g_concatcopy(list: TAsmList; const source, dest: treference; len: tcgint);override;
         procedure g_adjust_self_value(list: TAsmList; procdef: tprocdef; ioffset: tcgint);override;
@@ -2041,6 +2042,38 @@ implementation
     procedure tcgaarch64.g_restore_registers(list:TAsmList);
       begin
         { done in g_proc_exit }
+      end;
+
+
+    procedure tcgaarch64.g_local_unwind(list: TAsmList; l: TAsmLabel);
+      var
+        para1, para2: tcgpara;
+        href: treference;
+        pd: tprocdef;
+        framereg: tregister;
+      begin
+        if target_info.system<>system_aarch64_win64 then
+          begin
+            inherited g_local_unwind(list,l);
+            exit;
+          end;
+        pd:=search_system_proc('_fpc_local_unwind');
+        para1.init;
+        para2.init;
+        paramanager.getcgtempparaloc(list,pd,1,para1);
+        paramanager.getcgtempparaloc(list,pd,2,para2);
+        reference_reset_symbol(href,l,0,1,[]);
+        if pi_no_framepointer_needed in current_procinfo.flags then
+          framereg:=NR_STACK_POINTER_REG
+        else
+          framereg:=NR_FP;
+        a_load_reg_cgpara(list,OS_ADDR,framereg,para1);
+        a_loadaddr_ref_cgpara(list,href,para2);
+        paramanager.freecgpara(list,para2);
+        paramanager.freecgpara(list,para1);
+        g_call(list,'_FPC_local_unwind');
+        para2.done;
+        para1.done;
       end;
 
 

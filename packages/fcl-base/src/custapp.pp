@@ -613,7 +613,7 @@ begin
     O:=Paramstr(I);
     If (Length(O)=0) or (O[1]<>FOptionChar) then
       begin
-      If Assigned(NonOpts) then
+      If (Length(O)>0) and Assigned(NonOpts) then
         NonOpts.Add(O);
       end
     else
